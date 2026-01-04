@@ -1,65 +1,81 @@
-# src/app.py
-
-import os
-import sys
-import joblib
-import numpy as np
-from typing import List
-
 from fastapi import FastAPI
 from pydantic import BaseModel
+import numpy as np
+import joblib
+import logging
+import time
 
-# -------------------------------------------------------------------
-# Absolute paths inside Docker / Kubernetes container
-# -------------------------------------------------------------------
-MODEL_PATH = "/app/artifacts/random_forest_model.pkl"
-SCALER_PATH = "/app/artifacts/scaler.pkl"
+# ------------------------
+# Logging Configuration
+# ------------------------
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s"
+)
+logger = logging.getLogger(__name__)
 
-# -------------------------------------------------------------------
-# Validate artifacts at startup (prevents CrashLoopBackOff)
-# -------------------------------------------------------------------
-if not os.path.exists(MODEL_PATH):
-    print(f"ERROR: Model file not found at {MODEL_PATH}")
-    sys.exit(1)
-
-if not os.path.exists(SCALER_PATH):
-    print(f"ERROR: Scaler file not found at {SCALER_PATH}")
-    sys.exit(1)
-
-# -------------------------------------------------------------------
-# Load model and scaler
-# -------------------------------------------------------------------
-model = joblib.load(MODEL_PATH)
-scaler = joblib.load(SCALER_PATH)
-
-# -------------------------------------------------------------------
-# FastAPI app
-# -------------------------------------------------------------------
+# ------------------------
+# App Initialization
+# ------------------------
 app = FastAPI(title="Heart Disease Prediction API")
 
-# -------------------------------------------------------------------
-# Request schema
-# -------------------------------------------------------------------
-class PatientInput(BaseModel):
-    features: List[float]
+START_TIME = time.time()
+REQUEST_COUNT = 0
 
-# -------------------------------------------------------------------
-# Health check endpoint
-# -------------------------------------------------------------------
+logger.info("Starting Heart Disease Prediction API")
+
+# ------------------------
+# Load Model Artifacts
+# ------------------------
+model = joblib.load("artifacts/random_forest_model.pkl")
+scaler = joblib.load("artifacts/scaler.pkl")
+
+logger.info("Model and scaler loaded successfully")
+
+# ------------------------
+# Request Schema
+# ------------------------
+class PatientInput(BaseModel):
+    features: list
+
+# ------------------------
+# Health Endpoint
+# ------------------------
 @app.get("/health")
 def health():
+    logger.info("Health check endpoint called")
     return {"status": "ok"}
 
-# -------------------------------------------------------------------
-# Prediction endpoint
-# -------------------------------------------------------------------
+# ------------------------
+# Metrics Endpoint (Simple Monitoring)
+# ------------------------
+@app.get("/metrics")
+def metrics():
+    uptime = round(time.time() - START_TIME, 2)
+    return {
+        "requests_served": REQUEST_COUNT,
+        "uptime_seconds": uptime
+    }
+
+# ------------------------
+# Prediction Endpoint
+# ------------------------
 @app.post("/predict")
 def predict(data: PatientInput):
+    global REQUEST_COUNT
+    REQUEST_COUNT += 1
+
+    logger.info(f"Received prediction request #{REQUEST_COUNT}")
+
     X = np.array(data.features).reshape(1, -1)
     X_scaled = scaler.transform(X)
 
     prob = model.predict_proba(X_scaled)[0][1]
     prediction = int(prob >= 0.5)
+
+    logger.info(
+        f"Prediction={prediction}, Confidence={round(float(prob), 3)}"
+    )
 
     return {
         "prediction": "Disease" if prediction == 1 else "No Disease",
