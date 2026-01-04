@@ -1,25 +1,58 @@
 # src/app.py
+
+import os
+import sys
 import joblib
 import numpy as np
+from typing import List
+
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-# Load model and scaler
-model = joblib.load("artifacts/random_forest_model.pkl")
-scaler = joblib.load("artifacts/scaler.pkl")
+# -------------------------------------------------------------------
+# Absolute paths inside Docker / Kubernetes container
+# -------------------------------------------------------------------
+MODEL_PATH = "/app/artifacts/random_forest_model.pkl"
+SCALER_PATH = "/app/artifacts/scaler.pkl"
 
+# -------------------------------------------------------------------
+# Validate artifacts at startup (prevents CrashLoopBackOff)
+# -------------------------------------------------------------------
+if not os.path.exists(MODEL_PATH):
+    print(f"ERROR: Model file not found at {MODEL_PATH}")
+    sys.exit(1)
+
+if not os.path.exists(SCALER_PATH):
+    print(f"ERROR: Scaler file not found at {SCALER_PATH}")
+    sys.exit(1)
+
+# -------------------------------------------------------------------
+# Load model and scaler
+# -------------------------------------------------------------------
+model = joblib.load(MODEL_PATH)
+scaler = joblib.load(SCALER_PATH)
+
+# -------------------------------------------------------------------
+# FastAPI app
+# -------------------------------------------------------------------
 app = FastAPI(title="Heart Disease Prediction API")
 
-# Input schema
+# -------------------------------------------------------------------
+# Request schema
+# -------------------------------------------------------------------
 class PatientInput(BaseModel):
-    features: list
+    features: List[float]
 
-# Health check
+# -------------------------------------------------------------------
+# Health check endpoint
+# -------------------------------------------------------------------
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
+# -------------------------------------------------------------------
 # Prediction endpoint
+# -------------------------------------------------------------------
 @app.post("/predict")
 def predict(data: PatientInput):
     X = np.array(data.features).reshape(1, -1)

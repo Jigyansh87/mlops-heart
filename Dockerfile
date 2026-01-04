@@ -2,15 +2,13 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-# Copy only runtime requirements
-COPY requirements.txt .
+# Install runtime dependencies only
+COPY requirements.api.txt .
+RUN pip install --no-cache-dir -r requirements.api.txt
 
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt
-
-# Copy application code
-COPY src/app.py .
-COPY artifacts ./artifacts
+# Copy application code and model artifacts
+COPY src/app.py /app/app.py
+COPY artifacts /app/artifacts
 
 EXPOSE 8000
 

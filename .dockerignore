@@ -1,0 +1,30 @@
+# Git
+.git
+.gitignore
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.env/
+
+# Notebooks, data, tests, reports (not needed in API image)
+notebooks/
+data/
+tests/
+reports/
+
+# MLflow artifacts
+mlruns/
+mlflow.db
+
+# OS / editor
+.DS_Store
+.vscode/
+
+# Logs
+*.log
