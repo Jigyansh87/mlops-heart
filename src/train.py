@@ -68,6 +68,47 @@ df = pd.read_csv(DATA_PATH)
 X = df.drop("target", axis=1)
 y = df["target"]
 
+# ---------- CLASS BALANCE VISUALIZATION ----------
+plt.figure(figsize=(8, 6))
+class_counts = y.value_counts().sort_index()
+plt.bar(["No Disease (0)", "Disease (1)"], class_counts.values, color=['green', 'red'])
+plt.xlabel("Target Class")
+plt.ylabel("Count")
+plt.title("Class Distribution")
+plt.grid(axis='y', alpha=0.3)
+for i, v in enumerate(class_counts.values):
+    plt.text(i, v + 5, str(v), ha='center', fontweight='bold')
+
+class_balance_path = os.path.join(REPORTS_DIR, "class_balance.png")
+plt.savefig(class_balance_path)
+plt.close()
+print(f"✓ Class balance chart saved to {class_balance_path}")
+
+# ---------- FEATURE HISTOGRAMS ----------
+n_features = len(X.columns)
+n_cols = 4
+n_rows = (n_features + n_cols - 1) // n_cols  # Ceiling division
+
+fig, axes = plt.subplots(n_rows, n_cols, figsize=(16, n_rows * 3))
+axes = axes.ravel()
+
+for idx, col in enumerate(X.columns):
+    axes[idx].hist(X[col], bins=20, edgecolor='black', alpha=0.7, color='steelblue')
+    axes[idx].set_title(f"{col}", fontweight='bold')
+    axes[idx].set_xlabel("Value")
+    axes[idx].set_ylabel("Frequency")
+    axes[idx].grid(axis='y', alpha=0.3)
+
+# Hide any extra subplots
+for idx in range(len(X.columns), len(axes)):
+    axes[idx].set_visible(False)
+
+plt.tight_layout()
+histograms_path = os.path.join(REPORTS_DIR, "feature_histograms.png")
+plt.savefig(histograms_path)
+plt.close()
+print(f"✓ Feature histograms saved to {histograms_path}")
+
 
 # =========================
 # 5. TRAIN–TEST SPLIT
@@ -233,6 +274,8 @@ with mlflow.start_run():
     mlflow.log_artifact(roc_path)
     mlflow.log_artifact(bar_path)
     mlflow.log_artifact(cm_path)
+    mlflow.log_artifact(class_balance_path)
+    mlflow.log_artifact(histograms_path)
 
     # ---------- LOG FINAL MODEL ----------
     mlflow.sklearn.log_model(
@@ -240,6 +283,8 @@ with mlflow.start_run():
         artifact_path="model",
         registered_model_name="HeartDiseaseRandomForest"
     )
+
+    print("\n✓ Training complete! All artifacts logged to MLflow.")
 
 
 # =========================
