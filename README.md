@@ -196,28 +196,6 @@ Rebuild with no cache:
 ```bash
 docker build --no-cache -t heart-api:latest .
 ```
-
-## Next Steps
-
-- [ ] Add model training pipeline
-- [ ] Implement API endpoints for predictions
-- [ ] Add model versioning with MLflow
-- [ ] Set up CI/CD pipeline
-- [ ] Add model monitoring and logging
-- [ ] Implement data drift detection
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests to ensure everything works
-5. Submit a pull request
-
-## License
-
-This project uses the UCI Heart Disease Dataset, which is freely available for research purposes.
-
 ## References
 
 - [UCI Heart Disease Dataset](https://archive.ics.uci.edu/ml/datasets/heart+disease)
