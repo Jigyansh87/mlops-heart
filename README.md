@@ -130,6 +130,77 @@ kubectl get pods
 kubectl port-forward deployment/heart-api-deployment 8000:8000
 ```
 
+## API Endpoints
+
+### Interactive API Documentation
+
+FastAPI provides automatic interactive API documentation:
+
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+- **OpenAPI Schema**: http://localhost:8000/openapi.json
+
+### `GET /health`
+Health check endpoint
+
+**Response:**
+```json
+{"status": "ok"}
+```
+
+**cURL:**
+```bash
+curl http://localhost:8000/health
+```
+
+### `GET /metrics`
+Application metrics
+
+**Response:**
+```json
+{
+  "requests_served": 10,
+  "uptime_seconds": 123.45
+}
+```
+
+**cURL:**
+```bash
+curl http://localhost:8000/metrics
+```
+
+### `POST /predict`
+Predict heart disease
+
+**Request Body:**
+```json
+{
+  "features": [63, 1, 1, 145, 233, 1, 2, 150, 0, 2.3, 3, 0, 6]
+}
+```
+
+**Response:**
+```json
+{
+  "prediction": "Disease",
+  "confidence": 0.85
+}
+```
+
+**cURL:**
+```bash
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "features": [67.0, 1.0, 4.0, 160.0, 286.0, 0.0, 2.0, 108.0, 1.0, 1.5, 2.0, 3.0, 3.0]
+  }'
+```
+
+**Or open in browser:**
+```bash
+open http://localhost:8000/docs
+```
+
 The API will be accessible at `http://localhost:8000`
 
 ### Scale the Deployment
