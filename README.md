@@ -111,6 +111,101 @@ docker run -p 8000:8000 heart-api:latest
 
 ## Kubernetes Deployment
 
+### Option 1: Deploy to Minikube (Local Kubernetes)
+
+#### Prerequisites
+- Minikube installed
+- kubectl installed
+- Docker installed (or use Minikube's Docker daemon)
+
+#### Step 1: Start Minikube
+
+```bash
+# Start Minikube with Docker driver
+minikube start --driver=docker
+
+# Verify Minikube is running
+minikube status
+
+# Enable required addons
+minikube addons enable ingress
+minikube addons enable metrics-server
+```
+
+#### Step 2: Configure Docker to Use Minikube's Docker Daemon
+
+```bash
+# Point your shell to Minikube's Docker daemon
+eval $(minikube docker-env)
+
+# Verify you're using Minikube's Docker
+docker ps  # Should show Minikube containers
+```
+
+#### Step 3: Build Docker Image in Minikube
+
+```bash
+# Build the image (this will build inside Minikube)
+docker build -t heart-api:latest .
+
+# Verify image is available in Minikube
+minikube image ls | grep heart-api
+```
+
+#### Step 4: Update Kubernetes Deployment for Minikube
+
+Make sure your `k8s/deployment.yaml` has `imagePullPolicy: Never` for local images:
+
+```bash
+# Check if imagePullPolicy is set correctly
+cat k8s/deployment.yaml | grep imagePullPolicy
+
+# If not, update it manually or use this command:
+sed -i '' 's/imagePullPolicy: Always/imagePullPolicy: Never/g' k8s/deployment.yaml
+```
+
+#### Step 5: Deploy to Minikube
+
+```bash
+# Create namespace (optional but recommended)
+kubectl create namespace heart-api
+
+# Deploy application
+kubectl apply -f k8s/deployment.yaml -n heart-api
+
+# Or deploy without namespace
+kubectl apply -f k8s/deployment.yaml
+```
+
+#### Step 6: Verify Deployment
+
+```bash
+# Check deployment status
+kubectl get deployments -n heart-api
+
+# Check pods
+kubectl get pods -n heart-api
+
+# Check services
+kubectl get services -n heart-api
+
+# View pod logs
+kubectl logs -f deployment/heart-api-deployment -n heart-api
+```
+
+#### Step 7: Access the Application
+
+**Option A: Port Forward (Recommended for testing)**
+
+```bash
+# Forward port 8000 from the service to localhost
+kubectl port-forward service/heart-api-service 8000:80 -n heart-api
+
+# Access the API
+curl http://localhost:8000/health
+open http://localhost:8000/docs
+```
+
 ### Deploy to Kubernetes
 
 ```bash
@@ -129,6 +224,99 @@ kubectl get pods
 ```bash
 kubectl port-forward deployment/heart-api-deployment 8000:8000
 ```
+
+The API will be accessible at `http://localhost:8000`
+
+### Scale the Deployment
+
+```bash
+kubectl scale deployment heart-api-deployment --replicas=3
+```
+
+### Delete Deployment
+
+```bash
+kubectl delete -f k8s/deployment.yaml
+```
+
+## Development Workflow
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest tests/ -v
+
+# Run specific test file
+pytest tests/test_data.py -v
+
+# Run with coverage
+pytest tests/ --cov=. --cov-report=html
+```
+
+### Data Validation
+
+The project includes automated data validation tests in [tests/test_data.py](tests/test_data.py):
+
+1. **File Existence**: Ensures dataset file exists at expected location
+2. **Column Validation**: Verifies target column is present
+3. **Data Quality**: Checks for missing values
+
+## Project Files
+
+- **[data/download_data.py](data/download_data.py)**: Downloads and preprocesses the heart disease dataset
+- **[data/heart_cleaned.csv](data/heart_cleaned.csv)**: Cleaned dataset with 303 records
+- **[k8s/deployment.yaml](k8s/deployment.yaml)**: Kubernetes deployment configuration
+- **[tests/test_data.py](tests/test_data.py)**: Data validation test suite
+
+## Troubleshooting
+
+### Dataset Download Issues
+
+If download fails, ensure you have internet connectivity and try:
+```bash
+python data/download_data.py
+```
+
+### Kubernetes Pod Not Starting
+
+Check pod logs:
+```bash
+kubectl logs deployment/heart-api-deployment
+```
+
+### Docker Image Issues
+
+Rebuild with no cache:
+```bash
+docker build --no-cache -t heart-api:latest .
+```
+
+## Next Steps
+
+- [ ] Add model training pipeline
+- [ ] Implement API endpoints for predictions
+- [ ] Add model versioning with MLflow
+- [ ] Set up CI/CD pipeline
+- [ ] Add model monitoring and logging
+- [ ] Implement data drift detection
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests to ensure everything works
+5. Submit a pull request
+
+## License
+
+This project uses the UCI Heart Disease Dataset, which is freely available for research purposes.
+
+## References
+
+- [UCI Heart Disease Dataset](https://archive.ics.uci.edu/ml/datasets/heart+disease)
+- Dataset Citation: Janosi, Andras, et al. "Heart Disease Data Set." UCI Machine Learning Repository (1988)
 
 ## API Endpoints
 
@@ -200,74 +388,3 @@ curl -X POST http://localhost:8000/predict \
 ```bash
 open http://localhost:8000/docs
 ```
-
-The API will be accessible at `http://localhost:8000`
-
-### Scale the Deployment
-
-```bash
-kubectl scale deployment heart-api-deployment --replicas=3
-```
-
-### Delete Deployment
-
-```bash
-kubectl delete -f k8s/deployment.yaml
-```
-
-## Development Workflow
-
-### Running Tests
-
-```bash
-# Run all tests
-pytest tests/ -v
-
-# Run specific test file
-pytest tests/test_data.py -v
-
-# Run with coverage
-pytest tests/ --cov=. --cov-report=html
-```
-
-### Data Validation
-
-The project includes automated data validation tests in [tests/test_data.py](tests/test_data.py):
-
-1. **File Existence**: Ensures dataset file exists at expected location
-2. **Column Validation**: Verifies target column is present
-3. **Data Quality**: Checks for missing values
-
-## Project Files
-
-- **[data/download_data.py](data/download_data.py)**: Downloads and preprocesses the heart disease dataset
-- **[data/heart_cleaned.csv](data/heart_cleaned.csv)**: Cleaned dataset with 303 records
-- **[k8s/deployment.yaml](k8s/deployment.yaml)**: Kubernetes deployment configuration
-- **[tests/test_data.py](tests/test_data.py)**: Data validation test suite
-
-## Troubleshooting
-
-### Dataset Download Issues
-
-If download fails, ensure you have internet connectivity and try:
-```bash
-python data/download_data.py
-```
-
-### Kubernetes Pod Not Starting
-
-Check pod logs:
-```bash
-kubectl logs deployment/heart-api-deployment
-```
-
-### Docker Image Issues
-
-Rebuild with no cache:
-```bash
-docker build --no-cache -t heart-api:latest .
-```
-## References
-
-- [UCI Heart Disease Dataset](https://archive.ics.uci.edu/ml/datasets/heart+disease)
-- Dataset Citation: Janosi, Andras, et al. "Heart Disease Data Set." UCI Machine Learning Repository (1988)
